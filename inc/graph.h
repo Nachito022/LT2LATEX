@@ -8,6 +8,8 @@ typedef struct {
     int rank;
 } Point;
 
+extern int node_id[MAX_POINTS];
+extern int node_count;
 
 int find_or_create_point(double x, double y);
 int uf_find(int i);
@@ -15,6 +17,4 @@ void uf_union(int a, int b);
 void assign_nodes(void);
 int match_point(double x, double y);
 
-extern int node_id[MAX_POINTS];
-extern int node_count;
 

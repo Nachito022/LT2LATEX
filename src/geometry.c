@@ -9,6 +9,7 @@ Vector rotate(Vector p, double angle_deg)
     double rad = angle_deg * PI / 180.0;
 
     Vector r;
+    //Apply transformation matrix
     r.x = p.x * cos(rad) - p.y * sin(rad);
     r.y = p.x * sin(rad) + p.y * cos(rad);
 
@@ -58,6 +59,7 @@ void transform_component_pins()
     }
 }
 
+//since we are using floats, this is necessary
 int double_equal(double a, double b)
 {
     return fabs(a - b) < EPS;
