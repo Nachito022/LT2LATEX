@@ -5,6 +5,4 @@
 
 typedef void (*EmitterFn)(Component*);
 
-EmitterFn find_handler(const char *type);
-
 #endif

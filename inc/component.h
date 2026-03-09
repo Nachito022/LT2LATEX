@@ -1,3 +1,6 @@
+#ifndef COMPONENT_H
+#define COMPONENT_H
+
 #define MAX_PINS 16
 #define MAX_COMPONENTS 512
 #define MAX_POINTS 4096
@@ -32,4 +35,7 @@ void add_pin(Component* c,
              const char* pin_name,
              double local_x,
              double local_y);
+             
 void attach_pins_to_nodes(void);
+
+#endif

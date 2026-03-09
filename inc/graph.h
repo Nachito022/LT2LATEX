@@ -1,3 +1,6 @@
+#ifndef GRAPH_H
+#define GRAPH_H
+
 #define MAX_POINTS  4096
 #include "geometry.h"
 
@@ -18,3 +21,4 @@ void assign_nodes(void);
 int match_point(double x, double y);
 
 
+#endif
