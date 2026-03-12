@@ -73,18 +73,14 @@ static const PinMap tl081_pin_map[] = {
 
 /* ── Voltage-controlled voltage source (e, e2) ── */
 static const PinMap vcvs_pin_map[] = {
-    { "+",  "right" },      /* output + */
-    { "-",  "left" },       /* output - */
-    { "P",  "control+" },   /* controlling + */
-    { "N",  "control-" },   /* controlling - */
+    { "+", "north" },
+    { "-", "south" },
 };
 
 /* ── Voltage-controlled current source (g, g2) ── */
 static const PinMap vccs_pin_map[] = {
-    { "+",   "right" },
-    { "-",   "left" },
-    { "NC+", "control+" },
-    { "NC-", "control-" },
+    { "+", "north" },
+    { "-", "south" },
 };
 
 /* ── Voltage-controlled switch (sw) ── */
@@ -144,10 +140,10 @@ static const SymbolPinMap SYMBOL_PIN_MAP[] = {
     { "pjf",              jfet_pin_map,            3 },
     { "UniversalOpAmp",   opamp_pin_map,           5 },
     { "TL081",            tl081_pin_map,           5 },
-    { "e",                vcvs_pin_map,            4 },
-    { "e2",               vcvs_pin_map,            4 },
-    { "g",                vccs_pin_map,            4 },
-    { "g2",               vccs_pin_map,            4 },
+    { "e",                vcvs_pin_map,            2 },
+    { "e2",               vcvs_pin_map,            2 },
+    { "g",                vccs_pin_map,            2 },
+    { "g2",               vccs_pin_map,            2 },
     { "sw",               sw_pin_map,              4 },
     { "tline",            tline_pin_map,           4 },
     { "ltline",           tline_pin_map,           4 },

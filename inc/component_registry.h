@@ -51,12 +51,12 @@ static const ComponentMap COMPONENT_MAP[] = {
     { "current",        "isource" },
     { "bi",             "controlled current source" },
     { "bi2",            "controlled voltage source" },
-    { "e",              "controlled voltage source" },
+    { "e",              "vsource" },
+    { "e2",             "vsource" },
+    { "g",              "isource" },
+    { "g2",             "isource" },
     { "f",              "controlled current source" },
-    { "g",              "controlled current source" },
     { "h",              "controlled voltage source" },
-    { "e2",             "controlled voltage source" },
-    { "g2",             "controlled current source" },
     { "bv",             "controlled voltage source" },
 
     /* Opamps & Comparators */
