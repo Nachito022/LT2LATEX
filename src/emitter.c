@@ -61,10 +61,9 @@ static void emit_multi_pin(FILE *out, const Component *c, const char *tikz_type)
         const char *anchor = get_tikz_anchor(c->type, p->name);
 
         if (anchor != NULL) {
-            /* Attach via the named circuitikz anchor */
-            fprintf(out, "  \\coordinate (%s_%s) at (%s.%s);\n",
-                    c->name, p->name, c->name, anchor);
-        } else {
+        fprintf(out, "  \\coordinate (%s_%s) at (%s.{%s});\n",c->name, p->name, c->name, anchor);
+        }
+        else {
             /* Fallback: place a coordinate at the absolute pin position */
             fprintf(out, "  \\coordinate (%s_%s) at (%.4f,%.4f); %% no anchor map\n",
                     c->name, p->name,
@@ -149,9 +148,7 @@ static void emit_pin_stubs(FILE *out)
             if (found) {
                 char anchor[128];
                 snprintf(anchor, sizeof(anchor), "%s_%s", c->name, p->name);
-                fprintf(out,
-                        "  \\draw (%s) -- (%.4f,%.4f);\n",
-                        anchor, best_x, best_y);
+                fprintf(out,"  \\draw (%s) -- (%.4f,%.4f);\n", anchor, best_x, best_y);
             }
         }
     }
@@ -186,8 +183,7 @@ static void emit_node_coordinates(FILE *out)
         int nid1 = node_id[uf_find(idx1)];
         if (nid1 >= 0 && nid1 < MAX_POINTS && !emitted[nid1] && !seen[nid1]) {
             seen[nid1] = 1;
-            fprintf(out, "  \\coordinate (n%d) at (%.4f,%.4f);\n",
-                    nid1, wires[i].p1.x, wires[i].p1.y);
+            fprintf(out, "  \\coordinate (n%d) at (%.4f,%.4f);\n",nid1, wires[i].p1.x, wires[i].p1.y);
         }
 
         /* p2 of wire */
