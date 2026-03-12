@@ -3,7 +3,6 @@
 
 #include <string.h>
 #include "symbol_library.h"
-#include "string.h"
 
 typedef struct {
     const char *ltspice_pin;
@@ -59,8 +58,8 @@ static const PinMap opamp_pin_map[] = {
     { "In+", "+" },
     { "In-", "-" },
     { "OUT", "out" },
-    { "V+",  "vs+" },
-    { "V-",  "vs-" },
+    { "V+",  "up" },
+    { "V-",  "down" },
 };
 
 /* ── Op-amps specific model (TL081) ── */
@@ -68,8 +67,8 @@ static const PinMap tl081_pin_map[] = {
     { "+",   "+" },
     { "-",   "-" },
     { "Out", "out" },
-    { "V+",  "vs+" },
-    { "V-",  "vs-" },
+    { "V+",  "up" },
+    { "V-",  "down" },
 };
 
 /* ── Voltage-controlled voltage source (e, e2) ── */
@@ -159,7 +158,7 @@ static const SymbolPinMap SYMBOL_PIN_MAP[] = {
 #define SYMBOL_PIN_MAP_COUNT (sizeof(SYMBOL_PIN_MAP) / sizeof(SYMBOL_PIN_MAP[0]))
 
 static const char *get_tikz_anchor(const char *symbol_name, const char *ltspice_pin) {
-    for (int i = 0; i < SYMBOL_PIN_MAP_COUNT; i++) {
+    for (size_t i = 0; i < SYMBOL_PIN_MAP_COUNT; i++) {
         if (strcmp(SYMBOL_PIN_MAP[i].symbol_name, symbol_name) == 0) {
             for (int j = 0; j < SYMBOL_PIN_MAP[i].pin_map_count; j++) {
                 if (strcmp(SYMBOL_PIN_MAP[i].pin_map[j].ltspice_pin, ltspice_pin) == 0) {

@@ -1,3 +1,5 @@
+/* Component management functions */
+
 #include "component.h"
 #include "graph.h"
 #include <stdio.h>
@@ -25,31 +27,24 @@ Component* create_component(const char* name,
     strcpy(c->type, type);
     strcpy(c->orient, orient);
 
-    c->position.x = x * SCALE;
-    c->position.y = -y * SCALE;   // flip Y
+    c->position.x =  x * SCALE;
+    c->position.y = -y * SCALE;
 
     c->pin_count = 0;
 
     return c;
 }
 
-void add_pin(Component* c,
-             const char* pin_name,
-             double local_x,
-             double local_y)
+void add_pin(Component* c, const char* pin_name, double local_x, double local_y)
 {
     if (c->pin_count >= MAX_PINS) {
         fprintf(stderr, "Too many pins in %s\n", c->name);
         exit(1);
     }
-
     Pin* p = &c->pins[c->pin_count++];
-
     strcpy(p->name, pin_name);
-
-    p->local_pos.x = local_x * SCALE;
-    p->local_pos.y = -local_y * SCALE;   // flip local Y too
-
+    p->local_pos.x = local_x * 16.0 * SCALE;
+    p->local_pos.y = local_y * 16.0 * SCALE;   /* NO Y flip here */
     p->node = -1;
 }
 

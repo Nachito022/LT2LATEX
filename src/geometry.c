@@ -1,3 +1,5 @@
+/* Geometry functions for handling vector transformations */
+
 #include "geometry.h"
 #include "component.h"
 #include <math.h>
@@ -44,17 +46,13 @@ void apply_orientation(Vector *p, const char *orient)
 void transform_component_pins()
 {
     for (int i = 0; i < component_count; i++) {
-
         Component* c = &components[i];
-
         for (int j = 0; j < c->pin_count; j++) {
-
-            Vector p = c->pins[j].local_pos;
-
-            apply_orientation(&p, c->orient);
-
-            c->pins[j].abs_pos.x = p.x + c->position.x;
-            c->pins[j].abs_pos.y = p.y + c->position.y;
+            Vector p = c->pins[j].local_pos;   /* LTspice screen space */
+            apply_orientation(&p, c->orient);  /* rotate in LTspice space */
+            /* Flip Y when converting to TikZ space */
+            c->pins[j].abs_pos.x =  p.x + c->position.x;
+            c->pins[j].abs_pos.y = -p.y + c->position.y;
         }
     }
 }

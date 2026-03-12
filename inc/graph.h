@@ -11,6 +11,9 @@ typedef struct {
     int rank;
 } Point;
 
+extern Point  points[MAX_POINTS];
+extern int    point_count;
+
 extern int node_id[MAX_POINTS];
 extern int node_count;
 

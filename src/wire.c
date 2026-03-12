@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+Wire wires[MAX_WIRES];
+int  wire_count = 0;
+
 void add_wire(double x1, double y1, double x2, double y2)
 {
     if (wire_count >= MAX_WIRES) {

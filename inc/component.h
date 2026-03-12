@@ -8,15 +8,15 @@
 #include "geometry.h"
 
 typedef struct {
-    char name[16];
+    char name[32];
     Vector local_pos;
     Vector abs_pos;
     int node;
 } Pin;
 
 typedef struct {
-    char name[16];
-    char type[16];
+    char name[64];
+    char type[64];
     Vector position;
     char orient[8];
     Pin pins[MAX_PINS];

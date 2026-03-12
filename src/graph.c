@@ -1,3 +1,5 @@
+/* Graph functions for handling point management and union-find operations */
+
 #include "graph.h"
 #include "geometry.h"
 #include <stdio.h>
@@ -5,6 +7,9 @@
 
 Point points[MAX_POINTS];
 int point_count = 0;
+
+int node_id[MAX_POINTS];
+int node_count = 0;
 
 int find_or_create_point(double x, double y)
 {
