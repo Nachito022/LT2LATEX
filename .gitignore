@@ -1,2 +1,16 @@
 .vscode/c_cpp_properties.json
 .vscode/tasks.json
+ltspice2tikz
+tests/Opamp1_test.log
+tests/Opamp1_test.pdf
+tests/Opamp1_test.tex
+tests/RLC_test.aux
+tests/RLC_test.log
+tests/RLC_test.synctex.gz
+tests/RLC_test.tex
+tests/RLC_test.pdf
+tests/RLC_test2.aux
+tests/RLC_test2.pdf
+tests/RLC_test2.synctex.gz
+tests/RLC_test2.log
+tests/RLC_test2.tex
