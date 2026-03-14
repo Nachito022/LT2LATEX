@@ -4,6 +4,7 @@
 #include "graph.h"
 #include "symbol_library.h"
 #include "wire.h"
+#include "ground.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,11 +15,20 @@
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
+static void register_pin_points(void)
+{
+    for (int i = 0; i < component_count; i++) {
+        Component *c = &components[i];
+        for (int j = 0; j < c->pin_count; j++) {
+            find_or_create_point(c->pins[j].abs_pos.x,
+                                 c->pins[j].abs_pos.y);
+        }
+    }
+}
+
 /* Case-insensitive symbol lookup in symbol_library */
 static const Symbol *find_symbol(const char *type_name)
 {
-
-
     const char *base = type_name;
     const char *p;
 
@@ -69,7 +79,6 @@ static void commit_component(PendingComp *p)
 
     const Symbol *sym = find_symbol(p->type);
     if (!sym) {
-        /* Strip path for cleaner warning */
         const char *base = p->type;
         const char *q;
         if ((q = strrchr(base, '\\')) != NULL) base = q + 1;
@@ -82,21 +91,16 @@ static void commit_component(PendingComp *p)
         return;
     }
 
-    /* Build label: "R1=10k" or just "R1" if no value */
-    char label[128];
-    if (p->value[0] != '\0')
-        snprintf(label, sizeof(label), "%s=%s", p->name, p->value);
-    else
-        snprintf(label, sizeof(label), "%s", p->name);
-
     /* Strip subfolder prefix e.g. "OpAmps\\UniversalOpAmp" → "UniversalOpAmp" */
     const char *base_type = p->type;
     const char *q;
     if ((q = strrchr(base_type, '\\')) != NULL) base_type = q + 1;
     if ((q = strrchr(base_type, '/'))  != NULL) base_type = q + 1;
 
-    /* Create the component (position scaling + Y-flip done inside) */
-    Component *c = create_component(label, base_type, p->x, p->y, p->orient);
+    /* Pass name and value separately — no label building here.
+       The emitter is responsible for combining them into "R1=10k" for LaTeX. */
+    Component *c = create_component(p->name, p->value, base_type,
+                                    p->x, p->y, p->orient);
 
     /* Add each pin from the symbol library */
     for (int i = 0; i < sym->pin_count; i++) {
@@ -128,7 +132,6 @@ int parse_asc(const char *filepath)
         /* ---- SYMBOL line: starts a new component block ---- */
         /* Format: SYMBOL <type> <x> <y> <orient>              */
         if (strncmp(l, "SYMBOL ", 7) == 0) {
-            /* Commit any previous pending component first */
             commit_component(&pending);
             reset_pending(&pending);
 
@@ -138,7 +141,9 @@ int parse_asc(const char *filepath)
 
             if (sscanf(l + 7, "%63s %lf %lf %7s", type, &x, &y, orient) == 4) {
                 strncpy(pending.type,   type,   sizeof(pending.type)   - 1);
+                pending.type[sizeof(pending.type) - 1] = '\0';
                 strncpy(pending.orient, orient, sizeof(pending.orient) - 1);
+                pending.orient[sizeof(pending.orient) - 1] = '\0';
                 pending.x     = x;
                 pending.y     = y;
                 pending.valid = 1;
@@ -150,10 +155,13 @@ int parse_asc(const char *filepath)
         else if (strncmp(l, "SYMATTR ", 8) == 0 && pending.valid) {
             char key[64], val[256];
             if (sscanf(l + 8, "%63s %255[^\n]", key, val) >= 1) {
-                if (strcasecmp(key, "InstName") == 0)
-                    strncpy(pending.name,  trim(val), sizeof(pending.name)  - 1);
-                else if (strcasecmp(key, "Value") == 0)
+                if (strcasecmp(key, "InstName") == 0) {
+                    strncpy(pending.name, trim(val), sizeof(pending.name) - 1);
+                    pending.name[sizeof(pending.name) - 1] = '\0';
+                } else if (strcasecmp(key, "Value") == 0) {
                     strncpy(pending.value, trim(val), sizeof(pending.value) - 1);
+                    pending.value[sizeof(pending.value) - 1] = '\0';
+                }
             }
         }
 
@@ -161,19 +169,21 @@ int parse_asc(const char *filepath)
         /* Format: WIRE <x1> <y1> <x2> <y2>        */
         else if (strncmp(l, "WIRE ", 5) == 0) {
             double x1, y1, x2, y2;
-        if (sscanf(l + 5, "%lf %lf %lf %lf", &x1, &y1, &x2, &y2) == 4)
-            add_wire(x1, y1, x2, y2);   /* scaling + Y-flip done inside add_wire */
-}
+            if (sscanf(l + 5, "%lf %lf %lf %lf", &x1, &y1, &x2, &y2) == 4)
+                add_wire(x1, y1, x2, y2);
+        }
 
-        /* ---- FLAG / IOPIN: ground and port markers ---- */
-        /* Format: FLAG <x> <y> <net_name>                */
+        /* ---- FLAG: ground and port markers ---- */
+        /* Format: FLAG <x> <y> <net_name>         */
         else if (strncmp(l, "FLAG ", 5) == 0) {
             double x, y;
             char   net[64];
             if (sscanf(l + 5, "%lf %lf %63s", &x, &y, net) == 3) {
                 x *=  SCALE;
                 y  = -y * SCALE;
-                find_or_create_point(x, y);   /* ensure it's in the graph */
+                find_or_create_point(x, y);
+                if (strcmp(net, "0") == 0)
+                    add_ground(x, y);
             }
         }
     }
@@ -184,9 +194,10 @@ int parse_asc(const char *filepath)
     fclose(f);
 
     /* ---- Post-processing ---- */
-    transform_component_pins();   /* local → absolute coords            */
-    assign_nodes();               /* union-find roots → integer node IDs */
-    attach_pins_to_nodes();       /* match each pin to its node ID       */
+    transform_component_pins();  /* local → absolute coords              */
+    register_pin_points();       /* ensure all pins are in the point graph */
+    assign_nodes();              /* union-find roots → integer node IDs   */
+    attach_pins_to_nodes();      /* match each pin to its node ID         */
 
     return 0;
 }

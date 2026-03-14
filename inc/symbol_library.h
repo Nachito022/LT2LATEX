@@ -14,14 +14,18 @@ typedef struct {
     const SymbolPin *pins;
 } Symbol;
 
-static const SymbolPin e2_pins[] = { {"+", 0, 1}, {"-", 0, 6}, {"P", -3, 5}, {"N", -3, 2} };
-static const Symbol e2 = {
-    .name      = "e2",
-    .prefix    = "E",
-    .pin_count = 4,
-    .pins      = e2_pins,
-};
+/* symbol_library.h */
+static const SymbolPin e_pins[]  = { {"+", 0, 1}, {"-", 0, 6} };
+static const Symbol e  = { .name="e",  .prefix="E", .pin_count=2, .pins=e_pins  };
 
+static const SymbolPin e2_pins[] = { {"+", 0, 1}, {"-", 0, 6} };
+static const Symbol e2 = { .name="e2", .prefix="E", .pin_count=2, .pins=e2_pins };
+
+static const SymbolPin g_pins[]  = { {"+", 0, 6}, {"-", 0, 1} };
+static const Symbol g  = { .name="g",  .prefix="G", .pin_count=2, .pins=g_pins  };
+
+static const SymbolPin g2_pins[] = { {"+", 0, 6}, {"-", 0, 1} };
+static const Symbol g2 = { .name="g2", .prefix="G", .pin_count=2, .pins=g2_pins };
 static const SymbolPin SOAtherm_PCB_pins[] = { {"Tcenter", 0, 0} };
 static const Symbol SOAtherm_PCB = {
     .name      = "SOAtherm-PCB",
@@ -54,7 +58,7 @@ static const Symbol UniversalOpAmp = {
     .pins      = UniversalOpAmp_pins,
 };
 
-static const SymbolPin pnp2_pins[] = { {"C", 4, 0}, {"B", 0, 3}, {"E", 4, 6} };
+static const SymbolPin pnp2_pins[] = { {"C", 4, 6}, {"B", 0, 3}, {"E", 4, 0} };
 static const Symbol pnp2 = {
     .name      = "pnp2",
     .prefix    = "QP",
@@ -126,7 +130,7 @@ static const Symbol ISO16750_2 = {
     .pins      = ISO16750_2_pins,
 };
 
-static const SymbolPin pnp_pins[] = { {"C", 4, 0}, {"B", 0, 3}, {"E", 4, 6} };
+static const SymbolPin pnp_pins[] = { {"C", 4, 6}, {"B", 0, 3}, {"E", 4, 0} };
 static const Symbol pnp = {
     .name      = "pnp",
     .prefix    = "QP",
@@ -134,7 +138,7 @@ static const Symbol pnp = {
     .pins      = pnp_pins,
 };
 
-static const SymbolPin pnp4_pins[] = { {"C", 4, 0}, {"B", 0, 3}, {"E", 4, 6}, {"S", 4, 3} };
+static const SymbolPin pnp4_pins[] = { {"C", 4, 6}, {"B", 0, 3}, {"E", 4, 0}, {"S", 4, 3} };
 static const Symbol pnp4 = {
     .name      = "pnp4",
     .prefix    = "QP",
@@ -190,7 +194,7 @@ static const Symbol voltage = {
     .pins      = voltage_pins,
 };
 
-static const SymbolPin lpnp_pins[] = { {"C", 4, 0}, {"B", 0, 3}, {"E", 4, 6}, {"S", 4, 3} };
+static const SymbolPin lpnp_pins[] = { {"C", 4, 6}, {"B", 0, 3}, {"E", 4, 0}, {"S", 4, 3} };
 static const Symbol lpnp = {
     .name      = "lpnp",
     .prefix    = "QP",
@@ -246,21 +250,7 @@ static const Symbol nmos = {
     .pins      = nmos_pins,
 };
 
-static const SymbolPin g2_pins[] = { {"+", 0, 6}, {"-", 0, 1}, {"NC+", -3, 5}, {"NC-", -3, 2} };
-static const Symbol g2 = {
-    .name      = "g2",
-    .prefix    = "G",
-    .pin_count = 4,
-    .pins      = g2_pins,
-};
 
-static const SymbolPin g_pins[] = { {"+", 0, 6}, {"-", 0, 1}, {"NC+", -3, 2}, {"NC-", -3, 5} };
-static const Symbol g = {
-    .name      = "g",
-    .prefix    = "G",
-    .pin_count = 4,
-    .pins      = g_pins,
-};
 
 static const SymbolPin load2_pins[] = { {"+", 0, 0}, {"-", 0, 5} };
 static const Symbol load2 = {
@@ -374,13 +364,6 @@ static const Symbol npn3 = {
     .pins      = npn3_pins,
 };
 
-static const SymbolPin e_pins[] = { {"+", 0, 1}, {"-", 0, 6}, {"P", -3, 2}, {"N", -3, 5} };
-static const Symbol e = {
-    .name      = "e",
-    .prefix    = "E",
-    .pin_count = 4,
-    .pins      = e_pins,
-};
 
 static const SymbolPin bv_pins[] = { {"+", 0, 1}, {"-", 0, 6} };
 static const Symbol bv = {
@@ -398,7 +381,7 @@ static const Symbol nmos4 = {
     .pins      = nmos4_pins,
 };
 
-static const SymbolPin TIP42C_pins[] = { {"C", 4, 0}, {"B", 0, 3}, {"E", 4, 6} };
+static const SymbolPin TIP42C_pins[] = { {"C", 4, 6}, {"B", 0, 3}, {"E", 4, 0} };
 static const Symbol TIP42C = {
     .name      = "TIP42C",
     .prefix    = "Q",

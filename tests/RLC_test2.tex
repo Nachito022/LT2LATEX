@@ -3,39 +3,38 @@
 \begin{document}
 \begin{circuitikz}
 
+  % --- node coordinates ---
+  \coordinate (n1) at (1.6000,-5.6000);
+  \coordinate (n2) at (10.4000,-5.6000);
+  \coordinate (n3) at (5.6000,-9.6000);
+
   % R1  (res)
-  \draw (n0) to[resistor, l=$R1$] (n0);
+  \draw (8.0000,-5.6000) to[resistor, l=$R1$] (4.0000,-5.6000);
 
   % C1  (cap)
-  \draw (n1) to[capacitor, l=$C1$] (n2);
+  \draw (10.4000,-5.6000) to[capacitor, l=$C1$] (10.4000,-8.8000);
 
   % L1  (ind)
-  \draw (n2) to[inductor, l=$L1$] (n0);
+  \draw (1.6000,-9.6000) to[inductor, l=$L1$] (1.6000,-5.6000);
 
   % D1  (diode)
-  \draw (n0) to[diode, l=$D1$] (n0);
-
-  % E1  (e2)
-  \node [controlled voltage source] at (24.8000,-7.2000) (E1) {};
-  \coordinate (E1_+) at (E1.right);
-  \coordinate (n0) at (E1_+);
-  \coordinate (E1_-) at (E1.left);
-  \coordinate (n3) at (E1_-);
-  \coordinate (E1_P) at (E1.control+);
-  \coordinate (n0) at (E1_P);
-  \coordinate (E1_N) at (E1.control-);
-  \coordinate (n0) at (E1_N);
+  \draw (24.8000,-4.8000) to[diode, l=$D1$] (24.8000,-8.0000);
 
   % Q1  (pnp)
-  \node [pnp] at (22.4000,-4.8000) (Q1) {};
-  \coordinate (Q1_C) at (Q1.collector);
-  \coordinate (n0) at (Q1_C);
-  \coordinate (Q1_B) at (Q1.base);
-  \coordinate (n0) at (Q1_B);
-  \coordinate (Q1_E) at (Q1.emitter);
-  \coordinate (n0) at (Q1_E);
+  \node [pnp, rotate=270, xscale=-1] at (22.4000,-4.8000) (Q1) {};
+  \coordinate (Q1_C) at (Q1.{collector});
+  \coordinate (n0) at (27.2000,-1.6000);
+  \coordinate (Q1_B) at (Q1.{base});
+  \coordinate (n5) at (24.8000,-4.8000);
+  \coordinate (Q1_E) at (Q1.{emitter});
+  \coordinate (n4) at (22.4000,-1.6000);
+
+  % V1  (voltage)
+  \draw (30.4000,-4.8000) to[vsource, l=$V1$] (30.4000,-8.8000);
 
   % --- wires ---
+  \draw (30.4000,-1.6000) -- (27.2000,-1.6000);
+  \draw (30.4000,-4.8000) -- (30.4000,-1.6000);
   \draw (1.6000,-5.6000) -- (-3.2000,-5.6000);
   \draw (4.0000,-5.6000) -- (1.6000,-5.6000);
   \draw (10.4000,-5.6000) -- (8.0000,-5.6000);
@@ -44,7 +43,18 @@
   \draw (10.4000,-9.6000) -- (10.4000,-8.8000);
   \draw (10.4000,-9.6000) -- (5.6000,-9.6000);
   \draw (5.6000,-10.4000) -- (5.6000,-9.6000);
-  \draw (24.8000,-13.6000) -- (24.8000,-12.0000);
+  \draw (22.4000,-12.0000) -- (22.4000,-1.6000);
+  \draw (24.8000,-12.0000) -- (24.8000,-8.0000);
+  \draw (24.8000,-12.0000) -- (22.4000,-12.0000);
+  \draw (30.4000,-12.0000) -- (30.4000,-8.8000);
+  \draw (30.4000,-12.0000) -- (24.8000,-12.0000);
+
+  % --- pin stubs ---
+  \draw (Q1_C) -- (30.4000,-1.6000);
+  \draw (Q1_E) -- (22.4000,-12.0000);
+
+  % --- grounds ---
+  \node[ground] at (5.6000,-10.4000) {};
 
 \end{circuitikz}
 \end{document}

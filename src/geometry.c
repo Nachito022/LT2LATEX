@@ -29,9 +29,8 @@ void apply_orientation(Vector *p, const char *orient)
     int angle = 0;
     int mirror_flag = 0;
 
-    if (orient[0] == 'R') {
+    if (orient[0] == 'R')
         angle = atoi(&orient[1]);
-    }
     else if (orient[0] == 'M') {
         mirror_flag = 1;
         angle = atoi(&orient[1]);
@@ -40,6 +39,9 @@ void apply_orientation(Vector *p, const char *orient)
     if (mirror_flag)
         *p = mirror(*p);
 
+    /* LTspice rotates CW in screen space (Y-down).
+       In Y-down space, CW rotation = positive angle in our
+       rotate() function which uses standard math convention. */
     *p = rotate(*p, angle);
 }
 

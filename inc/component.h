@@ -8,7 +8,9 @@
 #include "geometry.h"
 
 typedef struct {
-    char name[32];
+    char name[64];
+    char value[64];
+    char type[64];
     Vector local_pos;
     Vector abs_pos;
     int node;
@@ -16,6 +18,7 @@ typedef struct {
 
 typedef struct {
     char name[64];
+    char value[64];
     char type[64];
     Vector position;
     char orient[8];
@@ -26,11 +29,10 @@ typedef struct {
 extern Component components[MAX_COMPONENTS];
 extern int component_count;
 
-Component* create_component(const char* name,
-                            const char* type,
-                            double x,
-                            double y,
-                            const char* orient);
+Component* create_component(const char *name, const char *value,
+                            const char *type, double x, double y,
+                            const char *orient);
+                            
 void add_pin(Component* c,
              const char* pin_name,
              double local_x,

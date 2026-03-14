@@ -15,7 +15,6 @@ int double_equal(double a, double b);
 Vector rotate(Vector p, double angle_deg);
 Vector mirror(Vector p);
 void apply_orientation(Vector *p, const char *orient);
-Vector transform_pin(Vector local, Vector origin, const char *orient);
 void transform_component_pins(void);
 
 #endif

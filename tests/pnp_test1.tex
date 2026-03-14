@@ -1,0 +1,39 @@
+\documentclass[border=5pt]{standalone}
+\usepackage{circuitikz}
+\begin{document}
+\begin{circuitikz}
+
+  % --- node coordinates ---
+
+  % D1  (diode)
+  \draw (5.6000,-9.6000) to[diode, l=$D1$] (5.6000,-12.8000);
+
+  % Q1  (pnp)
+  \node [pnp, rotate=270, xscale=-1] at (3.2000,-8.0000) (Q1) {};
+  \coordinate (Q1_C) at (8.0000,-4.8000);
+  \coordinate (n0) at (8.0000,-4.8000);
+  \coordinate (Q1_B) at (5.6000,-8.0000);
+  \coordinate (n1) at (5.6000,-8.0000);
+  \coordinate (Q1_E) at (3.2000,-4.8000);
+  \coordinate (n2) at (3.2000,-4.8000);
+
+  % V1  (voltage)
+  \draw (11.2000,-8.0000) to[vsource, l=$V1$] (11.2000,-12.0000);
+
+  % --- connections ---
+  \draw (5.6000,-9.6000) -- (5.6000,-8.0000);
+  \draw (5.6000,-12.8000) -- (5.6000,-15.2000);
+  \draw (8.0000,-4.8000) -- (11.2000,-4.8000);
+  \draw (5.6000,-8.0000) -- (5.6000,-9.6000);
+  \draw (3.2000,-4.8000) -- (5.6000,-4.8000) -- (5.6000,-12.8000);
+  \draw (11.2000,-8.0000) -- (11.2000,-4.8000);
+  \draw (11.2000,-12.0000) -- (11.2000,-15.2000);
+
+  % --- wire segments ---
+  \draw (5.6000,-15.2000) -- (3.2000,-15.2000);
+  \draw (11.2000,-15.2000) -- (5.6000,-15.2000);
+
+  % --- grounds ---
+
+\end{circuitikz}
+\end{document}
