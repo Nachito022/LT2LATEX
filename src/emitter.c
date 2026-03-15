@@ -3,6 +3,7 @@
 #include "emitter.h"
 #include "component.h"
 #include "component_registry.h"
+#include "symbol_pin_map.h"
 #include "graph.h"
 #include "wire.h"
 #include "ground.h"
@@ -22,21 +23,100 @@ static void node_label(int node_id_val, char *buf, size_t bufsz)
 }
 
 /* ------------------------------------------------------------------ */
+/*  Anchor calibration table                                            */
+/*                                                                      */
+/*  For each multi-pin type, stores the circuitikz anchor offset of   */
+/*  one reference pin (from node center, at R0 no mirror).            */
+/*  The node is shifted so the reference pin lands exactly at its     */
+/*  computed abs_pos.                                                  */
+/*                                                                      */
+/*  Values measured from:                                               */
+/*    \node [op amp] at (0,0) (A) {};  → A.out  = (1.18999, 0.0)     */
+/*    \node [npn]    at (0,0) (Q) {};  → Q.center = (4.0, 0.0)       */
+/*                                        Q.collector = (4.0, 0.76999)*/
+/*                                        offset = (0.0, 0.76999)     */
+/*    \node [nmos]   at (0,0) (M) {};  → M.center = (8.0, 0.0)       */
+/*                                        M.drain = (8.0, 0.76999)    */
+/*                                        offset = (0.0, 0.76999)     */
+/* ------------------------------------------------------------------ */
+typedef struct {
+    const char *type;
+    const char *ref_pin;   /* LTspice pin name                        */
+    double      tikz_dx;   /* circuitikz: center → ref_pin at R0      */
+    double      tikz_dy;
+} AnchorCalib;
+
+static const AnchorCalib ANCHOR_CALIB[] = {
+    /* Op amps */
+    { "UniversalOpAmp", "OUT",  1.18999,  0.0     },
+    { "TL081",          "Out",  1.18999,  0.0     },
+    { "opamp",          "OUT",  1.18999,  0.0     },
+    { "opamp2",         "OUT",  1.18999,  0.0     },
+    { "comparator",     "OUT",  1.18999,  0.0     },
+
+    /* NPN BJTs — collector offset from center */
+    { "npn",    "C",  0.0,  0.76999 },
+    { "npn2",   "C",  0.0,  0.76999 },
+    { "npn3",   "C",  0.0,  0.76999 },
+    { "npn4",   "C",  0.0,  0.76999 },
+    { "TIP41C", "C",  0.0,  0.76999 },
+
+    /* PNP BJTs */
+    { "pnp",    "C",  0.0,  0.76999 },
+    { "pnp2",   "C",  0.0,  0.76999 },
+    { "pnp4",   "C",  0.0,  0.76999 },
+    { "lpnp",   "C",  0.0,  0.76999 },
+    { "TIP42C", "C",  0.0,  0.76999 },
+
+    /* MOSFETs */
+    { "nmos",   "D",  0.0,  0.76999 },
+    { "nmos4",  "D",  0.0,  0.76999 },
+    { "pmos",   "D",  0.0,  0.76999 },
+    { "pmos4",  "D",  0.0,  0.76999 },
+
+    /* JFETs */
+    { "njf",    "D",  0.0,  0.76999 },
+    { "pjf",    "D",  0.0,  0.76999 },
+};
+
+#define ANCHOR_CALIB_SIZE \
+    (int)(sizeof(ANCHOR_CALIB)/sizeof(ANCHOR_CALIB[0]))
+
+static const AnchorCalib *get_calib(const char *type)
+{
+    for (int i = 0; i < ANCHOR_CALIB_SIZE; i++)
+        if (strcasecmp(ANCHOR_CALIB[i].type, type) == 0)
+            return &ANCHOR_CALIB[i];
+    return NULL;
+}
+
+/* ------------------------------------------------------------------ */
 /*  2-pin emitter                                                       */
 /* ------------------------------------------------------------------ */
 static void emit_two_pin(FILE *out, const Component *c, const char *tikz_type)
 {
     const Pin *p0 = &c->pins[0];
     const Pin *p1 = &c->pins[1];
+
+    char label[256];
+    if (c->value[0] != '\0')
+        snprintf(label, sizeof(label), "%s{=}%s", c->name, c->value);
+    else
+        snprintf(label, sizeof(label), "%s", c->name);
+
     fprintf(out, "  \\draw (%.4f,%.4f) to[%s, l=$%s$] (%.4f,%.4f);\n",
             p0->abs_pos.x, p0->abs_pos.y,
-            tikz_type, c->name,
+            tikz_type, label,
             p1->abs_pos.x, p1->abs_pos.y);
 }
 
-
 /* ------------------------------------------------------------------ */
 /*  Multi-pin emitter                                                   */
+/*                                                                      */
+/*  1. Uses anchor calibration to place the node so that the          */
+/*     reference circuitikz anchor lands exactly at abs_pos.          */
+/*  2. For every pin, draws a short stub from the circuitikz anchor   */
+/*     to abs_pos using -| or |- (Manhattan).                         */
 /* ------------------------------------------------------------------ */
 static void emit_multi_pin(FILE *out, const Component *c,
                             const char *tikz_type, int needs_mirror)
@@ -59,6 +139,29 @@ static void emit_multi_pin(FILE *out, const Component *c,
     double node_cx = cx;
     double node_cy = cy;
 
+    const AnchorCalib *cal = get_calib(c->type);
+    if (cal != NULL) {
+        for (int i = 0; i < c->pin_count; i++) {
+            if (strcmp(c->pins[i].name, cal->ref_pin) != 0) continue;
+
+            double rdx = cal->tikz_dx;
+            double rdy = cal->tikz_dy;
+
+            /* Step 1: apply mirror */
+            if (apply_mirror) rdx = -rdx;
+
+            /* Step 2: rotate CCW by angle (TikZ convention) */
+            double rad  = angle * PI / 180.0;
+            double rdx2 = rdx * cos(rad) - rdy * sin(rad);
+            double rdy2 = rdx * sin(rad) + rdy * cos(rad);
+
+            node_cx = c->pins[i].abs_pos.x - rdx2;
+            node_cy = c->pins[i].abs_pos.y - rdy2;
+            break;
+        }
+    }
+
+    /* ---- Emit the node ---- */
     char transform[64] = "";
     if (apply_mirror && angle != 0)
         snprintf(transform, sizeof(transform), ", rotate=%d, xscale=-1", angle);
@@ -70,19 +173,55 @@ static void emit_multi_pin(FILE *out, const Component *c,
     fprintf(out, "  \\node [%s%s] at (%.4f,%.4f) (%s) {};\n",
             tikz_type, transform, node_cx, node_cy, c->name);
 
+    /* ---- Labels ---- */
+    fprintf(out,
+        "  \\node[font=\\small, above] at (%s.north) {$%s$};\n",
+        c->name, c->name);
     if (c->value[0] != '\0')
-        fprintf(out, "  \\node[right, font=\\small] at (%s.east) {$%s$};\n",
-                c->name, c->value);
+        fprintf(out,
+            "  \\node[font=\\small, below] at (%s.south) {$%s$};\n",
+            c->name, c->value);
 
-    /* Pin coordinates always at abs_pos — independent of node placement */
+    /* ---- Pin coordinates + stubs ---- */
     for (int i = 0; i < c->pin_count; i++) {
         const Pin *p = &c->pins[i];
-        fprintf(out, "  \\coordinate (%s_%s) at (%.4f,%.4f);\n",
+
+        const char *anchor = get_tikz_anchor(c->type, p->name);
+
+        /* Coordinate at circuitikz anchor position */
+        char anchor_coord[128];
+        if (anchor != NULL) {
+            fprintf(out, "  \\coordinate (%s_%s) at (%s.{%s});\n",
+                    c->name, p->name, c->name, anchor);
+            snprintf(anchor_coord, sizeof(anchor_coord),
+                     "%s_%s", c->name, p->name);
+        } else {
+            /* No anchor map — place at abs_pos, stub is zero length */
+            fprintf(out,
+                "  \\coordinate (%s_%s) at (%.4f,%.4f); %% no anchor\n",
                 c->name, p->name, p->abs_pos.x, p->abs_pos.y);
+            snprintf(anchor_coord, sizeof(anchor_coord),
+                     "%s_%s", c->name, p->name);
+        }
+
+        /* Coordinate at schematic connection point */
         char nb[16];
         node_label(p->node, nb, sizeof(nb));
         fprintf(out, "  \\coordinate (%s) at (%.4f,%.4f);\n",
                 nb, p->abs_pos.x, p->abs_pos.y);
+
+        /* Stub: circuitikz anchor → abs_pos                         */
+        /* Use -| (horizontal first) or |- (vertical first) based on */
+        /* dominant direction of offset                               */
+        double dx = fabs(p->abs_pos.x - node_cx);
+        double dy = fabs(p->abs_pos.y - node_cy);
+        if (dx >= dy) {
+            fprintf(out, "  \\draw (%s) -| (%.4f,%.4f);\n",
+                    anchor_coord, p->abs_pos.x, p->abs_pos.y);
+        } else {
+            fprintf(out, "  \\draw (%s) |- (%.4f,%.4f);\n",
+                    anchor_coord, p->abs_pos.x, p->abs_pos.y);
+        }
     }
 }
 
@@ -136,166 +275,94 @@ static void emit_node_coordinates(FILE *out)
 }
 
 /* ------------------------------------------------------------------ */
-/*  Manhattan wire router                                               */
+/*  Wire emission — verbatim from LTspice edges                        */
+/*                                                                      */
+/*  Draws every wire segment exactly as LTspice has it.               */
 /* ------------------------------------------------------------------ */
-static void emit_manhattan(FILE *out,
-                            double x1, double y1,
-                            double x2, double y2,
-                            int bend_horizontal_first)
+static void emit_wires(FILE *out)
 {
-    if (double_equal(y1, y2) || double_equal(x1, x2)) {
-        fprintf(out, "  \\draw (%.4f,%.4f) -- (%.4f,%.4f);\n",
-                x1, y1, x2, y2);
-        return;
-    }
-
-    double bx, by;
-    if (bend_horizontal_first) {
-        bx = x2; by = y1;
-    } else {
-        bx = x1; by = y2;
-    }
-
-    fprintf(out, "  \\draw (%.4f,%.4f) -- (%.4f,%.4f) -- (%.4f,%.4f);\n",
-            x1, y1, bx, by, x2, y2);
-}
-
-/* ------------------------------------------------------------------ */
-/*  Heuristic: choose bend direction from pin exit direction           */
-/* ------------------------------------------------------------------ */
-static int choose_bend(const Component *c, const Pin *p)
-{
-    if (strcmp(p->name, "B")   == 0) return 0;
-    if (strcmp(p->name, "G")   == 0) return 0;
-    if (strcmp(p->name, "In+") == 0) return 0;
-    if (strcmp(p->name, "In-") == 0) return 0;
-
-    double dx = fabs(p->abs_pos.x - c->position.x);
-    double dy = fabs(p->abs_pos.y - c->position.y);
-    if (dx > dy) return 0;
-    return 1;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Helper: is point i a component pin?                                */
-/* ------------------------------------------------------------------ */
-static int point_is_pin(int i)
-{
-    for (int ci = 0; ci < component_count; ci++) {
-        for (int pi = 0; pi < components[ci].pin_count; pi++) {
-            double dx = points[i].x - components[ci].pins[pi].abs_pos.x;
-            double dy = points[i].y - components[ci].pins[pi].abs_pos.y;
-            if (dx*dx + dy*dy < 1e-10) return 1;
-        }
-    }
-    return 0;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Stub length — one LTspice grid unit in TikZ coords                 */
-/* ------------------------------------------------------------------ */
-#define STUB_LENGTH 0.8
-
-static void pin_stub_endpoint(const Component *c, const Pin *p,
-                               double *ex, double *ey)
-{
-    double dx = p->abs_pos.x - c->position.x;
-    double dy = p->abs_pos.y - c->position.y;
-
-    if (fabs(dx) >= fabs(dy)) {
-        *ex = p->abs_pos.x + (dx >= 0 ? STUB_LENGTH : -STUB_LENGTH);
-        *ey = p->abs_pos.y;
-    } else {
-        *ex = p->abs_pos.x;
-        *ey = p->abs_pos.y + (dy >= 0 ? STUB_LENGTH : -STUB_LENGTH);
-    }
-}
-
-/* ------------------------------------------------------------------ */
-/*  Connection algorithm with Manhattan routing + stubs                 */
-/* ------------------------------------------------------------------ */
-static void emit_connections(FILE *out)
-{
-    fprintf(out, "\n  %% --- connections ---\n");
-
-    /* ---- Part 1: component pin connections (Manhattan routed) ---- */
-    for (int ci = 0; ci < component_count; ci++) {
-        const Component *c = &components[ci];
-
-        for (int pi = 0; pi < c->pin_count; pi++) {
-            const Pin *p = &c->pins[pi];
-
-            /* Floating pin — draw a stub */
-            if (p->node < 0) {
-                double ex, ey;
-                pin_stub_endpoint(c, p, &ex, &ey);
-                fprintf(out, "  \\draw (%.4f,%.4f) -- (%.4f,%.4f);\n",
-                        p->abs_pos.x, p->abs_pos.y, ex, ey);
-                continue;
-            }
-
-            double px = p->abs_pos.x;
-            double py = p->abs_pos.y;
-
-            double best_dist = 1e18;
-            double best_x    = 0, best_y = 0;
-            int    found     = 0;
-
-            for (int i = 0; i < point_count; i++) {
-                if (node_id[uf_find(i)] != p->node) continue;
-
-                double dx   = points[i].x - px;
-                double dy   = points[i].y - py;
-                double dist = dx*dx + dy*dy;
-
-                if (dist < 1e-10) continue;
-
-                if (c->pin_count == 2) {
-                    int is_own_pin = 0;
-                    for (int pj = 0; pj < c->pin_count; pj++) {
-                        if (pj == pi) continue;
-                        double ddx = points[i].x - c->pins[pj].abs_pos.x;
-                        double ddy = points[i].y - c->pins[pj].abs_pos.y;
-                        if (ddx*ddx + ddy*ddy < 1e-10) {
-                            is_own_pin = 1;
-                            break;
-                        }
-                    }
-                    if (is_own_pin) continue;
-                }
-
-                if (dist < best_dist) {
-                    best_dist = dist;
-                    best_x    = points[i].x;
-                    best_y    = points[i].y;
-                    found     = 1;
-                }
-            }
-
-            if (found && best_dist > 1e-8) {
-                int bend = choose_bend(c, p);
-                emit_manhattan(out, px, py, best_x, best_y, bend);
-            } else if (!found) {
-                double ex, ey;
-                pin_stub_endpoint(c, p, &ex, &ey);
-                fprintf(out, "  \\draw (%.4f,%.4f) -- (%.4f,%.4f);\n",
-                        p->abs_pos.x, p->abs_pos.y, ex, ey);
-            }
-        }
-    }
-
-    /* ---- Part 2: wire-only segments (no component pin on either end) ---- */
-    fprintf(out, "\n  %% --- wire segments ---\n");
+    fprintf(out, "\n  %% --- wires ---\n");
     for (int i = 0; i < edge_count; i++) {
         int a = edges[i].a;
         int b = edges[i].b;
+        fprintf(out, "  \\draw (%.4f,%.4f) -- (%.4f,%.4f);\n",
+                points[a].x, points[a].y,
+                points[b].x, points[b].y);
+    }
+}
 
-        if (!point_is_pin(a) && !point_is_pin(b)) {
+/* ------------------------------------------------------------------ */
+/*  Junction dots                                                       */
+/*                                                                      */
+/*  A junction is any wire graph point with degree >= 3 (T or cross). */
+/*  Filled dot emitted at these positions.                             */
+/* ------------------------------------------------------------------ */
+static void emit_junctions(FILE *out)
+{
+    fprintf(out, "\n  %% --- junctions ---\n");
+
+    int degree[MAX_POINTS];
+    memset(degree, 0, sizeof(degree));
+    for (int i = 0; i < edge_count; i++) {
+        degree[edges[i].a]++;
+        degree[edges[i].b]++;
+    }
+
+    for (int i = 0; i < point_count; i++) {
+        if (degree[i] < 3) continue;
+        fprintf(out, "  \\fill (%.4f,%.4f) circle (1.5pt);\n",
+                points[i].x, points[i].y);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Floating pin stubs                                                  */
+/*                                                                      */
+/*  For pins with node < 0 (not connected to any wire),               */
+/*  draw a short stub in the pin exit direction.                       */
+/* ------------------------------------------------------------------ */
+#define STUB_LENGTH 0.8
+
+static void emit_floating_stubs(FILE *out)
+{
+    fprintf(out, "\n  %% --- floating pin stubs ---\n");
+
+    for (int ci = 0; ci < component_count; ci++) {
+        const Component *c = &components[ci];
+        for (int pi = 0; pi < c->pin_count; pi++) {
+            const Pin *p = &c->pins[pi];
+            if (p->node >= 0) continue;
+
+            /* Exit direction from component center */
+            double dx = p->abs_pos.x - c->position.x;
+            double dy = p->abs_pos.y - c->position.y;
+
+            double ex, ey;
+            if (fabs(dx) >= fabs(dy)) {
+                ex = p->abs_pos.x + (dx >= 0 ? STUB_LENGTH : -STUB_LENGTH);
+                ey = p->abs_pos.y;
+            } else {
+                ex = p->abs_pos.x;
+                ey = p->abs_pos.y + (dy >= 0 ? STUB_LENGTH : -STUB_LENGTH);
+            }
+
             fprintf(out, "  \\draw (%.4f,%.4f) -- (%.4f,%.4f);\n",
-                    points[a].x, points[a].y,
-                    points[b].x, points[b].y);
+                    p->abs_pos.x, p->abs_pos.y, ex, ey);
         }
     }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Net labels (FLAG names)                                             */
+/*                                                                      */
+/*  Emits a text label at each degree-1 wire endpoint that has a      */
+/*  named FLAG (not "0" / ground).                                     */
+/*  Requires netlabel.h/c — see earlier in the conversation.          */
+/* ------------------------------------------------------------------ */
+static void emit_net_labels(FILE *out)
+{
+    /* Placeholder — implement with netlabel.h/c to emit named flags  */
+    (void)out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -343,7 +410,10 @@ void emit_circuitikz(FILE *out)
             emit_multi_pin(out, c, map->circuitikz_name, map->needs_mirror);
     }
 
-    emit_connections(out);
+    emit_wires(out);
+    emit_junctions(out);
+    emit_floating_stubs(out);
+    emit_net_labels(out);
     emit_grounds(out);
 
     fprintf(out, "\n\\end{circuitikz}\n");

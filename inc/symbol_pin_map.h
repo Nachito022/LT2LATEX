@@ -153,19 +153,20 @@ static const SymbolPinMap SYMBOL_PIN_MAP[] = {
 
 #define SYMBOL_PIN_MAP_COUNT (sizeof(SYMBOL_PIN_MAP) / sizeof(SYMBOL_PIN_MAP[0]))
 
-/*
-static const char *get_tikz_anchor(const char *symbol_name, const char *ltspice_pin) {
+static const char *get_tikz_anchor(const char *symbol_name,
+                                    const char *ltspice_pin)
+{
     for (size_t i = 0; i < SYMBOL_PIN_MAP_COUNT; i++) {
         if (strcmp(SYMBOL_PIN_MAP[i].symbol_name, symbol_name) == 0) {
             for (int j = 0; j < SYMBOL_PIN_MAP[i].pin_map_count; j++) {
-                if (strcmp(SYMBOL_PIN_MAP[i].pin_map[j].ltspice_pin, ltspice_pin) == 0) {
+                if (strcmp(SYMBOL_PIN_MAP[i].pin_map[j].ltspice_pin,
+                           ltspice_pin) == 0) {
                     return SYMBOL_PIN_MAP[i].pin_map[j].tikz_anchor;
                 }
             }
         }
     }
-    return NULL; // not found
+    return NULL;
 }
-    */
 
 #endif // SYMBOL_PIN_MAP_H

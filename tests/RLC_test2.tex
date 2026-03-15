@@ -21,13 +21,17 @@
   \draw (24.8000,-4.8000) to[diode, l=$D1$] (24.8000,-8.0000);
 
   % Q1  (pnp)
-  \node [pnp, rotate=270, xscale=-1] at (22.4000,-4.8000) (Q1) {};
+  \node [pnp, rotate=270, xscale=-1] at (26.4300,-1.6000) (Q1) {};
+  \node[font=\small, above] at (Q1.north) {$Q1$};
   \coordinate (Q1_C) at (Q1.{collector});
   \coordinate (n0) at (27.2000,-1.6000);
+  \draw (Q1_C) -| (27.2000,-1.6000);
   \coordinate (Q1_B) at (Q1.{base});
   \coordinate (n5) at (24.8000,-4.8000);
+  \draw (Q1_B) |- (24.8000,-4.8000);
   \coordinate (Q1_E) at (Q1.{emitter});
   \coordinate (n4) at (22.4000,-1.6000);
+  \draw (Q1_E) -| (22.4000,-1.6000);
 
   % V1  (voltage)
   \draw (30.4000,-4.8000) to[vsource, l=$V1$] (30.4000,-8.8000);
@@ -49,9 +53,11 @@
   \draw (30.4000,-12.0000) -- (30.4000,-8.8000);
   \draw (30.4000,-12.0000) -- (24.8000,-12.0000);
 
-  % --- pin stubs ---
-  \draw (Q1_C) -- (30.4000,-1.6000);
-  \draw (Q1_E) -- (22.4000,-12.0000);
+  % --- junctions ---
+  \fill (5.6000,-9.6000) circle (1.5pt);
+  \fill (24.8000,-12.0000) circle (1.5pt);
+
+  % --- floating pin stubs ---
 
   % --- grounds ---
   \node[ground] at (5.6000,-10.4000) {};
